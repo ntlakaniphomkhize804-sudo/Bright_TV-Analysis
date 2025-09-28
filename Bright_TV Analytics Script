@@ -1,0 +1,65 @@
+
+WITH viewership_enriched AS (
+SELECT
+A.UserID,
+A.Channel2,
+A.RecordDate2,
+to_timestamp(A.RecordDate2, 'yyyy/MM/dd HH:mm') AS RecordDate2_UTC_ts,
+from_utc_timestamp(
+to_timestamp(A.RecordDate2, 'yyyy/MM/dd HH:mm'),
+ 'Africa/Johannesburg'
+) AS RecordDate2_SA,
+A.Duration2,
+--- Convert Duration2 to SA time
+from_utc_timestamp(A.Duration2, 'Africa/Johannesburg') AS Duration2_SA,
+B.Name,
+B.Surname,
+B.Email,
+B.Gender,
+B.Race,
+B.Age,
+B.Province,
+B.`Social Media Handle`
+FROM bright_tv_viewership AS A
+FULL OUTER JOIN bright_tv_user_profiles AS B
+ON A.UserID = B.UserID
+)
+SELECT
+UserID,
+Channel2,
+RecordDate2,
+RecordDate2_UTC_ts,
+RecordDate2_SA,
+Duration2,
+Duration2_SA,
+Name,
+Surname,
+Email,
+Gender,
+Race,
+Age,
+Province,
+`Social Media Handle`,
+TO_DATE(RecordDate2_SA) AS session_date,
+DAYOFMONTH(RecordDate2_SA) AS day_of_month,
+DAYNAME(RecordDate2_SA) AS day_name,
+date_format(RecordDate2_SA, 'MMMM') AS month_name,
+date_format(RecordDate2_SA, 'yyyyMM') AS month_id,
+
+CASE 
+WHEN HOUR(RecordDate2_SA) BETWEEN 6 AND 11 THEN 'Morning'
+WHEN HOUR(RecordDate2_SA) BETWEEN 12 AND 17 THEN 'Afternoon'
+WHEN HOUR(RecordDate2_SA) BETWEEN 18 AND 23 THEN 'Evening'
+ELSE 'Night'
+END AS time_buckets,
+  
+CASE 
+WHEN Age BETWEEN 0 AND 17 THEN 'Teen'
+WHEN Age BETWEEN 18 AND 24 THEN 'Young Adult'
+WHEN Age BETWEEN 25 AND 34 THEN 'Adult'
+WHEN Age BETWEEN 35 AND 44 THEN 'Middle Aged'
+WHEN Age BETWEEN 45 AND 54 THEN 'Mature'
+WHEN Age >= 55 THEN 'Senior'
+ELSE 'Unknown'
+END AS age_group
+FROM viewership_enriched
